@@ -1,228 +1,254 @@
 import os
 import oracledb
-connection = oracledb.connect(user = "XXX", password = "XXX", dsn = "XXX/xe")
+
+# Limpando informações remanescentes do terminal...
+os.system('cls')
+
+# Configurando o acesso ao Banco de Dados...
+connection = oracledb.connect(user="SYSTEM", password="123456", dsn="localhost:1521/xe")
 cursor = connection.cursor()
-#
-alfanumerico = 'ZABCDEFGHIJKLMNOPQRSTUVWXY'
-chave = [[4, 3], [1, 2]]
-chave_inversa = [[42, -63], [-21, 84]]
-#
-def hill_criptografia(desc_prod, chave): #CRIPTOGRAFA E DESCRIPTOGRAFA
-    numeros = [] #TRANSFORMA EM NUMEROS
+
+# Configurando o alfanumerio e as chaves para criptografia e descriptografia...
+alfanumerico = 'zabcdefghijklmnopqrstuvwxy'
+chave_cripto = [[4, 3], [1, 2]]
+chave_descripto = [[42, -63], [-21, 84]]
+
+#----------------------------------------------------------------------------------------
+
+# Função para criptografar/descriptografar...
+def hill_criptografia(desc_prod, chave):
+
+    # Converte a descrição em índices numéricos do alfabeto...
+    index = []
     for letra in desc_prod:
         if letra in alfanumerico:
-            numeros.append(alfanumerico.index(letra))
-    #
-    parNumeros = [] #SEPARA OS NUMEROS EM PARES
-    for i in range(0, len(numeros), 2):
-        parNumeros.append(numeros[i:i+2])
-    #
-    multi = [] #MULTIPLICA OS NUMEROS PELA CHAVE
-    for par in parNumeros:
-        multi.append([(((chave[0][0] * par[0]) + (chave[0][1] * par[1])) % 26), (((chave[1][0] * par[0]) + (chave[1][1] * par[1])) % 26)])
-    #
-    desc_cripto = '' #CONVERTE NUMERO EM LETRA
-    for index in multi:
-        for numero in index:
-            desc_cripto += alfanumerico[numero]
-    #
-    return desc_cripto
-def verificacao_para_criptografia(desc_prod): #VERIFICA SE A DESCRICAO É IMPAR
-    if (len(desc_prod) % 2 != 0):
-            desc_prod += desc_prod[-1]
-    return desc_prod
-#
-def calculo_print_tabela(cod_prod, nome_prod, desc_prod, CP, CF, CV, IV, ML): #CALCULA E IMPRIME A TABELA
-    PV = CP/(1-((CF+CV+IV+ML)/100)) #CALCULAR O VALOR PARA VENDA DO PRODUTO
-    #
-    OCpor = CF+CV+IV          #OUTROS CUSTOS '%'
-    CFnum = (PV*CF)/100       #CUSTO FIXO 'VALOR'
-    CVnum = (PV*CV)/100       #COMISSAO 'VALOR'
-    IVnum = (PV*IV)/100       #IMPOSTOS 'VALOR'
-    OCnum = CFnum+CVnum+IVnum #OUTROS CUSTOS 'VALOR'
-    RBnum = PV-CP             #RECEITA BRUTA 'VALOR'
-    Rnum  = RBnum-OCnum       #RENTABILIDADE 'VALOR'
-    CPpor = (CP*100)/PV       #CUSTO PRODUTO '%'
-    RBpor = 100-CPpor         #RECEITA BRUTA '%'
-    Rpor  = RBpor-OCpor       #RENTABILIDADE '%'
-    #
-    if Rpor > 20:
-        ClassLucro = 'LUCRO ALTO'
-    elif 10 <= Rpor <= 20:
-        ClassLucro = 'LUCRO MÉDIO'
-    elif 0 < Rpor < 10:
-        ClassLucro = 'LUCRO BAIXO'
-    elif Rpor == 0:
-        ClassLucro = 'EQUILÍBRIO'
-    elif Rpor < 0:
-        ClassLucro = 'PREJUÍZO'
-    #
+            index.append(alfanumerico.index(letra))
+
+    # Valida se a descrição é par
+    if len(index) % 2 != 0:
+        index.append(index[-1])
+
+    resultado = ''
+    # Processa os índices em pares efetua a multipliação e aplica a criptografia
+    for i in range(0, len(index), 2):
+        resultado += (alfanumerico[(chave[0][0] * index[i] + chave[0][1] * index[i + 1]) % 26] +
+                      alfanumerico[(chave[1][0] * index[i] + chave[1][1] * index[i + 1]) % 26])
+
+    return resultado
+
+# Função para calcular a tabela do produto e mostra-la...
+def calculo_print_tabela(cod_prod, nome_prod, desc_prod, cp, cf, cv, iv, ml):
+
+    # Calcula o valor de venda do produto...
+    pv = cp / (1 - ((cf + cv + iv + ml) / 100))
+
+    # Calcula os outros custos...
+    oc_por = cf + cv + iv  # Outros custos '%'
+    cf_num = (pv * cf) / 100  # Custo fixo 'valor'
+    cv_num = (pv * cv) / 100  # Comissão 'valor'
+    iv_num = (pv * iv) / 100  # Impostos 'valor'
+    oc_num = cf_num + cv_num + iv_num  # Outros custos 'valor'
+    rb_num = pv - cp  # Receita bruta 'valor'
+    r_num  = rb_num - oc_num  # Rentabilidade 'valor'
+    cp_por = (cp * 100) / pv  # Custo do produto '%'
+    rb_por = 100 - cp_por  # Receita bruta '%'
+    r_por = rb_por - oc_por  # Rentabilidade '%'
+
+    # Classifica a tipo de lucro...
+    if r_por > 20:
+        class_lucro = 'Lucro Alto'
+    elif 10 <= r_por <= 20:
+        class_lucro = 'Lucro Médio'
+    elif 0 < r_por < 10:
+        class_lucro = 'Lucro Baixo'
+    elif r_por == 0:
+        class_lucro = 'Equilíbrio'
+    else:
+        class_lucro = 'Prejuízo'
+
+    # Printa no terminal as informações do produto
     print(f'''                      
-=========================================================
- CÓDIGO: {cod_prod}\t\t\t\t\t\t
- PRODUTO: {nome_prod}\t\t\tVALOR\t  %
- DESCRIÇÃO: {desc_prod}\t\t\t\t\t\t           
-=========================================================
- A. Preço de Venda\t\t¦ R${PV:.2f}\t¦  100%\t
- B. Custo de Aquisição\t\t¦ R${CP:.2f}\t¦  {CPpor:.0f}% \t
- C. Receita Bruta(A-B)\t\t¦ R${RBnum:.2f}\t¦  {RBpor:.0f}% \t
- D. Custo Fixo/Administrativo\t¦ R${CFnum:.2f}\t¦  {CF:.0f}% \t                   
- E. Comissão de Vendas\t\t¦ R${CVnum:.2f}\t¦  {CV:.0f}% \t
- F. Impostos\t\t\t¦ R${IVnum:.2f}\t¦  {IV:.0f}% \t
- G. Outros Custos(D+E+F)\t¦ R${OCnum:.2f}\t¦  {OCpor:.0f}% \t
- H. Rentabilidade(C-G)\t\t¦ R${Rnum:.2f}\t¦  {Rpor:.0f}% \t
-=========================================================
- CLASSIFICAÇÃO DE LUCRO:\t {ClassLucro}\t\t
-=========================================================''')
-#
+=====================================================
+ Código: {cod_prod:<20}               
+ Produto: {nome_prod:<30}
+ Descrição: {desc_prod:<40}                    
+=====================================================
+¦ Preço de Venda            ¦ R${pv:<10.2f} ¦ {100:<5}% ¦
+¦ Custo de Aquisição        ¦ R${cp:<10.2f} ¦ {cp_por:<5.0f}% ¦
+¦ Receita Bruta             ¦ R${rb_num:<10.2f} ¦ {rb_por:<5.0f}% ¦
+¦ Custo Fixo/Administrativo ¦ R${cf_num:<10.2f} ¦ {cf:<5.0f}% ¦
+¦ Comissão de Vendas        ¦ R${cv_num:<10.2f} ¦ {cv:<5.0f}% ¦
+¦ Impostos                  ¦ R${iv_num:<10.2f} ¦ {iv:<5.0f}% ¦
+¦ Outros Custos             ¦ R${oc_num:<10.2f} ¦ {oc_por:<5.0f}% ¦
+¦ Rentabilidade             ¦ R${r_num:<10.2f} ¦ {r_por:<5.0f}% ¦
+=====================================================
+ Classificação de Lucro:  {class_lucro:<20}
+=====================================================''')
+
+# Funções CRUD do sistema...
 def cadastrar_produto():
-    cod_prod = int(input('CÓDIGO DO PRODUTO: '))             #CODIGO DO PRODUTO
-    #
+
+    # Pede ao usuario o codigo do produto...
+    cod_prod = int(input('Código do produto: '))
+
+    # Valida se o codigo já está cadastrado...
     cursor.execute(f'SELECT * FROM ESTOQUE WHERE COD_PROD = {cod_prod}')
     cod = cursor.fetchone()
-    if (cod):
-        print('\n--->>> CODIGO INVALIDO!!! <<<---')
+    if cod:
+        print('\n--->>> Código inválido! <<<---')
         return
-    #
-    nome_prod = str(input('NOME DO PRODUTO: '))              #NOME DO PRODUTO
-    desc_prod = str(input('DESCRIÇÃO DO PRODUTO: ')).upper() #DESCRIÇÃO DO PRODUTO
-    CP = float(input('CUSTO DO PRODUTO: '))                  #CUSTO PAGO PELO PRODUTO PARA O FORNECEDOR
-    CF = float(input('CUSTO FIXO/ADMINISTRATIVO(%): '))      #CUSTO FIXO (ESPAÇO FÍSICO, DESPESAS, FUNCIONÁRIOS...)
-    CV = float(input('COMISSÃO DE VENDAS: '))                #COMISSÃO SOBRE A VENDA DO PRODUTO
-    IV = float(input('IMPOSTOS(%): '))                       #IMPOSTOS SOBRE A VENDA DO PRODUTO
-    ML = float(input('MARGEM DE LUCRO DO PRODUTO: '))        #MARGEM DE LUCRO SOBRE A VENDA DO PRODUTO
-    #
-    calculo_print_tabela(cod_prod, nome_prod, desc_prod, CP, CF, CV, IV, ML)
-    #
-    desc_prod = verificacao_para_criptografia(desc_prod)
-    desc_cripto = hill_criptografia(desc_prod, chave)
-    #
-    cursor.execute(f"INSERT INTO ESTOQUE VALUES ({cod_prod}, '{nome_prod}', '{desc_cripto}', {CP}, {CF}, {CV}, {IV}, {ML})")    
+
+    # Inicia o cadastro do produto...
+    nome_prod = str(input('Nome do produto: '))              # Nome do produto
+    desc_prod = str(input('Descrição do produto: ')).lower() # Descrição do produto
+    cp = float(input('Custo de aquisição do produto: '))     # Custo do produto pago ao fornecedor
+    cf = float(input('Custo fixo/administrativo(%): '))      # Custo fixo (espaço físico, despesas, funcionarios...)
+    cv = float(input('Comissão de vendas(%): '))             # Comissão sobre a venda do produto
+    iv = float(input('Impostos(%): '))                       # Impostos sobre a venda do produto
+    ml = float(input('Margem de lucro do produto(%): '))     # Margem de lucro sobre a venda do produto
+
+    # Calcula as informações do produto e mostra na tela...
+    calculo_print_tabela(cod_prod, nome_prod, desc_prod, cp, cf, cv, iv, ml)
+
+    # Criptografa a descrição do produto...
+    desc_cripto = hill_criptografia(desc_prod, chave_cripto)
+
+    # Insere o produto no Banco de Dados...
+    cursor.execute(f"INSERT INTO estoque VALUES ({cod_prod}, '{nome_prod}', '{desc_cripto}', {cp}, {cf}, {cv}, {iv}, {ml})")
     connection.commit()
     print('\n--->>> PRODUTO CADASTRADO COM SUCESSO!!! <<<---')
 def alterar_produto():
-    cod_prod = int(input('CÓDIGO DO PRODUTO: '))
-    #
+
+    # Pede ao usuario o codigo do produto...
+    cod_prod = int(input('Código do produto: '))
+
+    # Valida se o codigo não está cadastrado...
     cursor.execute(f'SELECT * FROM ESTOQUE WHERE COD_PROD = {cod_prod}')
-    estoque = cursor.fetchone()
-    if (not estoque):
-        print('\n--->>> CODIGO INVALIDO!!! <<<---')
+    produto = cursor.fetchone()
+    if not produto:
+        print('\n--->>> Código inválido! <<<---')
         return
-    #
+
+    # Print do menu de alteração...
     menu_alteracao = int(input('''
 ===================================================
-¦               O QUE DESEJA ALTERAR:             ¦
+¦    Qual informação do produto deseja alterar:   ¦
 ===================================================
-¦ [1].NOME DO PRODUTO    ¦ [5].CUSTO FIXO         ¦
-¦ [2].DESCRIÇÃO PRODUTO  ¦ [6].COMISSÃO DE VENDAS ¦
-¦ [3].CUSTO DO PRODUTO   ¦ [7].IMPOSTOS           ¦
-¦ [4].MARGEM DE LUCRO    ¦                        ¦
+¦ [1].Nome do produto    ¦ [5].Custo fixo         ¦
+¦ [2].Descrição          ¦ [6].Comissão de vendas ¦
+¦ [3].Custo do produto   ¦ [7].Impostos           ¦
+¦ [4].Margem de lucro    ¦                        ¦
 ===================================================
-                    OPÇÃO: '''))
-    #
-    alteracao = str(input('NOVO VALOR PARA O CAMPO: '))
-    #
-    if (menu_alteracao == 1):
+Opção: '''))
+
+    # Escolha da alteração
+    alteracao = str(input('Nova informação para do produto: '))
+
+    # Classifica a alteração escolhida e a da nome a coluna..
+    if menu_alteracao == 1:
         coluna = 'nome_prod'
-    #
-    elif (menu_alteracao == 2):
-        alteracao = verificacao_para_criptografia(alteracao)
-        alteracao = hill_criptografia(alteracao, chave)
+    elif menu_alteracao == 2:
+        alteracao = hill_criptografia(alteracao, chave_cripto)
         coluna = 'desc_prod'
-    #
-    elif (menu_alteracao == 3):
+    elif menu_alteracao == 3:
         coluna = 'cp'
-    elif (menu_alteracao == 4):
+    elif menu_alteracao == 4:
         coluna = 'ml'
-    elif (menu_alteracao == 5):
+    elif menu_alteracao == 5:
         coluna = 'cf'
-    elif (menu_alteracao == 6):
+    elif menu_alteracao == 6:
         coluna = 'cv'
-    elif (menu_alteracao == 7):
+    elif menu_alteracao == 7:
         coluna = 'iv'
-    #
-    sim_nao = str(input('CONFIRMAR A EXCLUSÃO DO PRODUTO <S/N>: ')).upper()
-    if (sim_nao == 'N'):
-        print('\n--->>> NENHUM PRODUTO ALTERADO!!! <<<---')
+    else:
+        print('\n--->>> Opção inválida! <<<---')
         return
-    #
-    cursor.execute(f"UPDATE ESTOQUE SET {coluna} = '{alteracao}' WHERE COD_PROD = {cod_prod}")
+
+    # Realiza a alteração no Banco de Ddados...
+    cursor.execute(f"UPDATE estoque SET {coluna} = '{alteracao}' WHERE cod_prod = {cod_prod}")
     connection.commit()
-    print('\n--->>> PRODUTO ALTERADO COM SUCESSO!!! <<<---')
+    print('\n--->>> Produto alterado com sucesso! <<<---')
 def apagar_produto():
-    cod_prod = int(input('CÓDIGO DO PRODUTO: '))
-    #
+
+    # Pede ao usuario o codigo do produto...
+    cod_prod = int(input('Código do produto: '))
+
+    # Valida se o codigo não está cadastrado...
     cursor.execute(f'SELECT * FROM ESTOQUE WHERE COD_PROD = {cod_prod}')
     estoque = cursor.fetchone()
-    if (not estoque):
-        print('\n--->>> CODIGO INVALIDO!!! <<<---')
+    if not estoque:
+        print('\n--->>> Código inválido! <<<---')
         return
-    #
-    cod_prod, nome_prod, desc_cripto, CP, CF, CV, IV, ML = estoque
-    desc_prod = hill_criptografia(desc_cripto, chave_inversa)
-    calculo_print_tabela(cod_prod, nome_prod, desc_prod, CP, CF, CV, IV, ML)
-    #
-    sim_nao = str(input('CONFIRMAR A EXCLUSÃO DO PRODUTO <S/N>: ')).upper()
-    if (sim_nao == 'N'):
-        print('\n--->>> NENHUM PRODUTO ALTERADO!!! <<<---')
+
+    # Mostra o produto que o usuario escolheu excluir...
+    cod_prod, nome_prod, desc_cripto, cp, cf, cv, iv, ml = estoque
+    desc_prod = hill_criptografia(desc_cripto, chave_descripto)
+    calculo_print_tabela(cod_prod, nome_prod, desc_prod, cp, cf, cv, iv, ml)
+
+    # Pede a confirmação para exclusão...
+    confirmacao = str(input('Confirmar a exclusão do produto <s/n>: ')).lower()
+    if confirmacao != 's':
+        print('\n--->>> Nenhum produto excluído! <<<---')
         return
     #
     cursor.execute(f'DELETE FROM ESTOQUE WHERE COD_PROD = {cod_prod}')
     connection.commit()
-    print('\n--->>> PRODUTO APAGADO COM SUCESSO!!! <<<---')
+    print('\n--->>> Produto excluído com sucesso! <<<---')
 def mostrar_estoque():
+
+    # Valida se existe algum produto cadastrado...
     cursor.execute('SELECT * FROM ESTOQUE ORDER BY COD_PROD ASC')
     estoque = cursor.fetchall()
-    if (not estoque):
-        print('\n--->>> NENHUM PRODUTO CADASTRADO!!! <<<---')
+    if not estoque:
+        print('\n--->>> Nenhum produto cadastrado! <<<---')
         return
-    print('\n--->>> ESTOQUE COMPLETO DE PRODUTOS!!! <<<---')
-    #
+
+    # Mostra o estoque completo de produtos...
+    print('\n--->>> Estoque completo de produtos! <<<---')
     for item in estoque:
-        #
-        cod_prod, nome_prod, desc_cripto, CP, CF, CV, IV, ML = item
-        desc_prod = hill_criptografia(desc_cripto, chave_inversa)
-        calculo_print_tabela(cod_prod, nome_prod, desc_prod, CP, CF, CV, IV, ML)
-#
+        cod_prod, nome_prod, desc_cripto, cp, cf, cv, iv, ml = item
+        desc_prod = hill_criptografia(desc_cripto, chave_descripto)
+        calculo_print_tabela(cod_prod, nome_prod, desc_prod, cp, cf, cv, iv, ml)
+
+# Print do menu principal...
+def print_menu():
+    print('''
+===================================================
+¦        SISTEMA DE CONTROLE DE ESTOQUE!          ¦
+===================================================
+¦ [1].Cadastrar Produto                           ¦
+¦ [2].Alterar Produto                             ¦
+¦ [3].Apagar Produto                              ¦
+¦ [4].Mostrar Estoque                             ¦
+¦ [0].Sair                                        ¦
+===================================================''')
+
+#----------------------------------------------------------------------------------------
+
+# Pede ao usuario qual operação deseja realizar...
+print_menu()
+menu = int(input('Opção: '))
 os.system('cls')
-MENU = int(input('''
-===================================================
-¦                  BEM VINDO AO                   ¦
-¦        SISTEMA DE CONTROLE DE ESTOQUE!!!        ¦
-===================================================
-¦ [1].CADASTRAR PRODUTO                           ¦
-¦ [2].ALTERAR PRODUTO                             ¦
-¦ [3].APAGAR PRODUTO                              ¦
-¦ [4].MOSTRAR ESTOQUE                             ¦
-¦ [0].SAIR                                        ¦
-===================================================
-                    OPÇÃO: '''))
-os.system('cls')
-#
-while (MENU != 0):
-    if  (MENU == 1): #CADASTRAR PRODUTO
+
+# Laço de repetição para a interação do sistema...
+while menu != 0:
+    if menu == 1:   # Cadastrar produto
         cadastrar_produto()
-    elif (MENU == 2): #ALTERAR PRODUTO
+    elif menu == 2: # Alterar produto
         alterar_produto()
-    elif (MENU == 3): #APAGAR PRODUTO
+    elif menu == 3: # Apagar produto
         apagar_produto()
-    elif (MENU == 4): #MOSTRAR ESTOQUE
+    elif menu == 4: # Mostrar produto
         mostrar_estoque()
-    MENU = int(input('''
-                     
-===================================================
-¦          SISTEMA DE CONTROLE DE ESTOQUE         ¦
-===================================================
-¦ [1].CADASTRAR PRODUTO                           ¦
-¦ [2].ALTERAR PRODUTO                             ¦
-¦ [3].APAGAR PRODUTO                              ¦
-¦ [4].MOSTRAR ESTOQUE                             ¦
-¦ [0].SAIR                                        ¦
-===================================================
-                    OPÇÃO: '''))
+    else:
+        print('\n--->>> Opção invalida! <<<---')
+
+    # Pede novamente ao usuario qual operação deseja realizar...
+    print_menu()
+    menu = int(input('Opção: '))
     os.system('cls')
-#
-print('\n--->>> OBRIGADA POR USAR O SISTEMA!!! <<<---')
-connection.commit()
+
+# Finalizando o uso do sistema...
+print('\n--->>> Obrigada por utilizar o sistema :) <<<---')
 cursor.close()
 connection.close()
